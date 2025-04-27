@@ -142,12 +142,26 @@ class NLPProcessor:
         Returns:
             str: The query type ('restaurant', 'hotel', or 'vehicle')
         """
-        # First check for exact hotel or vehicle names in the query
-        # These names take precedence over other heuristics
-        logger.info(f"Checking for entity names in query: {query}")
+        # First check for exact entity mentions in the query
+        # These keywords take precedence over other heuristics
+        logger.info(f"Checking for entity keywords in query: {query}")
         
-        # Directly check for hotel names if "hotel" is mentioned
-        if 'hotel' in query.lower():
+        # Count keyword matches for each entity type
+        restaurant_score = sum(1 for word in self.restaurant_keywords if word in query)
+        hotel_score = sum(1 for word in self.hotel_keywords if word in query)
+        vehicle_score = sum(1 for word in self.vehicle_keywords if word in query)
+        
+        logger.info(f"Keyword scores: Restaurant={restaurant_score}, Hotel={hotel_score}, Vehicle={vehicle_score}")
+        
+        # The entity type with the most keyword matches wins
+        if restaurant_score > hotel_score and restaurant_score > vehicle_score:
+            return 'restaurant'
+        elif hotel_score > restaurant_score and hotel_score > vehicle_score:
+            return 'hotel'
+        elif vehicle_score > restaurant_score and vehicle_score > hotel_score:
+            return 'vehicle'
+        
+        # If no clear winner from keyword counts, use the old method
             from data_loader import DataLoader
             data_loader = DataLoader()
             hotels_data = data_loader.load_hotels_data()
