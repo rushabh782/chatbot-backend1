@@ -530,9 +530,27 @@ class NLPProcessor:
         Returns:
             str or None: The vehicle type or None if not found
         """
-        vehicle_types = ['car', 'bike', 'motorcycle', 'scooter', 'bicycle', 'cycle', 'bus']
+        # Map specific vehicle types to general categories in our database
+        vehicle_type_mapping = {
+            'car': ['car', 'sedan', 'hatchback'],
+            'suv': ['suv', 'jeep', '4x4', 'four wheel drive', '4 wheel drive'],
+            'minivan': ['minivan', 'van', 'mpv', 'family car'],
+            'truck': ['truck', 'pickup', 'lorry'],
+            'luxury car': ['luxury car', 'premium car', 'high end car'],
+            'convertible': ['convertible', 'cabrio', 'cabriolet', 'open top'],
+            'bike': ['bike', 'motorcycle', 'scooter', 'bicycle', 'cycle'],
+            'bus': ['bus', 'coach', 'minibus']
+        }
         
-        for vehicle_type in vehicle_types:
+        # Check for each vehicle type and its variations
+        for main_type, variations in vehicle_type_mapping.items():
+            for variation in variations:
+                if variation in query.lower():
+                    return main_type
+                    
+        # If specific type not found, check for generic categories
+        generic_types = ['car', 'suv', 'bike', 'motorcycle', 'bus']
+        for vehicle_type in generic_types:
             if vehicle_type in query:
                 return vehicle_type
         
@@ -548,11 +566,36 @@ class NLPProcessor:
         Returns:
             int or None: The passenger count or None if not found
         """
-        # Look for patterns like "for X people", "X passengers", "seats X"
-        passenger_match = re.search(r'(?:for|with)?\s*(\d+)\s*(?:people|person|passenger|passengers|persons|seats)', query, re.IGNORECASE)
-        if passenger_match:
-            return int(passenger_match.group(1))
+        # Look for various patterns related to passenger counts
+        patterns = [
+            # "for X people/passengers/persons"
+            r'(?:for|with)\s+(\d+)\s+(?:people|person|passenger|passengers|persons)',
+            # "X passenger/person vehicle"
+            r'(\d+)[- ](?:passenger|person|people|seat)',
+            # "seats X people/passengers"
+            r'seats?\s+(\d+)',
+            # "capacity of/for X"
+            r'capacity\s+(?:of|for)?\s+(\d+)',
+            # "fits X people"
+            r'fits?\s+(\d+)',
+            # "that can seat X"
+            r'that\s+can\s+seat\s+(\d+)',
+            # "X seater"
+            r'(\d+)[ -]seater'
+        ]
         
+        for pattern in patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        
+        # Check for common numbers in queries about family vehicles
+        if 'family' in query:
+            return 4  # Default family size
+            
+        if 'couple' in query or 'two people' in query:
+            return 2
+            
         return None
     
     def _extract_vehicle_preference(self, query):
