@@ -1,0 +1,54 @@
+Here’s a priority matrix for each query “case” (i.e. user‐intent category), showing in what order your chatbot should apply its filters. Within each case, filters are ranked from 1 (highest priority) down.
+
+1. Restaurant Queries
+
+Case Type	1️⃣ Primary Filter	2️⃣ Secondary Filter	3️⃣ Tertiary Filter	4️⃣ Quaternary Filter
+Cheap Restaurants	price_range_to ≤ X	rating ≥ Y (if given)	address contains Z	cuisines contains W
+Most Expensive	price_range_from ≥ X	rating ≥ Y (if given)	address contains Z	cuisines contains W
+Best (Highest-Rated)	rating ≥ X	price_range_to ≤ Y (opt)	cuisines contains W	address contains Z
+Worst (Lowest-Rated)	rating ≤ X	price_range_from ≥ Y (opt)	cuisines contains W	address contains Z
+Location-Based	address contains Z	rating ≥ X (if given)	price_range_to ≤ Y	cuisines contains W
+Cuisine-Based	cuisines contains W	rating ≥ X (if given)	price_range_to ≤ Y	address contains Z
+Price+Quality Mix	rating ≥ X	price_range_to ≤ Y	address contains Z	cuisines contains W
+Booking/Reservation	chosen restaurant name	date & time	party size	contact details
+2. Hotel Queries
+
+Case Type	1️⃣ Primary Filter	2️⃣ Secondary Filter	3️⃣ Tertiary Filter	4️⃣ Quaternary Filter
+Cheapest Hotels	price ≤ X	rating ≥ Y (if given)	location contains Z	category = W
+Most Expensive Hotel	price = max	rating ≥ Y (if given)	location contains Z	category = W
+Best-Rated Hotels	rating ≥ X	price ≤ Y (opt)	location contains Z	category = W
+Worst-Rated Hotels	rating ≤ X	price ≤/≥ Y (opt)	location contains Z	category = W
+Amenities-Based	amenities contains A	rating ≥ X (if given)	price ≤ Y	location contains Z
+Category/Type-Based	category = C	rating ≥ X (if given)	price ≤ Y	location contains Z
+Location-Based	location contains Z	rating ≥ X (if given)	price ≤ Y	amenities contains A
+Price+Quality Mix	rating ≥ X	price ≤ Y	location contains Z	amenities contains A
+People & Duration	party size & nights	price ≤ Y (per night total)	location contains Z	category = W
+Booking/Policy	hotel name & dates	refundable? / policy type	room type (sea-view?)	extras (breakfast, pickup)
+3. Vehicle-Rental Queries
+
+Case Type	1️⃣ Primary Filter	2️⃣ Secondary Filter	3️⃣ Tertiary Filter	4️⃣ Quaternary Filter
+Cheapest Rentals	pricePerDay/pricePerHour ≤ X	type = T (if given)	Ratings ≥ Y (opt)	pickupLocation contains Z
+Most Expensive Rental	pricePerDay/hour = max	type = T (if given)	Ratings ≥ Y (opt)	capacity ≥ N
+Top-Rated Vehicles	Ratings ≥ X	type = T (if given)	pricePerDay ≤ Y (opt)	capacity ≥ N
+Low-Rated Vehicles	Ratings ≤ X	type = T (if given)	pricePerDay ≥ Y (opt)	capacity ≥ N
+Type-Based	type = T	pricePerDay/hour ≤ X (opt)	Ratings ≥ Y (opt)	pickupLocation contains Z
+Capacity-Based	Passengers ≥ N	type = T (if given)	pricePerDay/hour ≤ X	Ratings ≥ Y
+Location-Based	pickupLocation contains Z / dropOffLocation contains Z	type = T (opt)	pricePerDay/hour ≤ X	Ratings ≥ Y
+Price+Quality Mix	Ratings ≥ X	pricePerDay/hour ≤ Y	type = T (opt)	capacity ≥ N
+Booking/Duration	start & end dates/times	type = T	pickupLocation contains Z	duration (hrs/days)
+How to use this matrix
+Detect the user’s intent (e.g. “cheap,” “best-rated,” “with pool,” “for 4 people,” etc.).
+
+Map that to a Case Type above.
+
+Apply filters in priority order—stop as soon as you have enough results, or cascade through all levels if needed.
+
+This ensures your chatbot consistently interprets “I want a cheap, top-rated Italian restaurant in Bandra” as:
+
+price_range_to ≤ budget
+
+rating ≥ threshold
+
+cuisines contains “Italian”
+
+address contains “Bandra”
