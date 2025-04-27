@@ -12,8 +12,10 @@ try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('corpora/stopwords')
 except LookupError:
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
+    print("Downloading required NLTK data...")
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    print("NLTK data download complete.")
 
 logger = logging.getLogger(__name__)
 

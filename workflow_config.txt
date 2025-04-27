@@ -1,0 +1,8 @@
+[[workflows.workflow]]
+name = "Rest API Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+waitForPort = 5000

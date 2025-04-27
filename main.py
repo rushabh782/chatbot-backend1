@@ -1,7 +1,34 @@
 #!/usr/bin/env python3
 """
 Command-line restaurant, hotel, and vehicle rental recommendation chatbot.
+Also includes a Flask app for Gunicorn.
 """
+from flask import Flask, jsonify, redirect
+
+# Create Flask app for Gunicorn
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return jsonify({
+        "message": "Travel Recommendation API",
+        "endpoints": [
+            "/api/recommendations",
+            "/api/health"
+        ],
+        "usage": {
+            "method": "POST",
+            "endpoint": "/api/recommendations",
+            "body": {
+                "query": "Find Italian restaurants in Mumbai"
+            }
+        }
+    })
+
+@app.route('/api/<path:path>')
+def proxy_to_nodejs(path):
+    # Redirect to the Node.js API server on port 3000
+    return redirect(f"http://localhost:3000/api/{path}", code=307)
 import sys
 import logging
 from nlp_processor import NLPProcessor

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Recommendation Assistant</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <style>
+        .recommendation-card {
+            margin-bottom: 20px;
+        }
+        .query-examples {
+            margin-bottom: 20px;
+        }
+        .example-btn {
+            margin: 5px;
+        }
+        #loading {
+            display: none;
+        }
+        .amenities-list, .alternatives-list {
+            padding-left: 20px;
+        }
+        .header-container {
+            background-color: var(--bs-primary);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .header-title {
+            font-weight: bold;
+        }
+        .header-subtitle {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container text-center">
+        <div class="container">
+            <h1 class="header-title">Travel Recommendation Assistant</h1>
+            <p class="header-subtitle">Find restaurants, hotels, and vehicle rentals in Mumbai</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Ask for Recommendations</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="query-examples">
+                            <p><strong>Example Queries:</strong></p>
+                            <button class="btn btn-sm btn-outline-secondary example-btn" data-query="Find cheap Italian restaurants in Mumbai with rating above 4">Cheap Italian Restaurants</button>
+                            <button class="btn btn-sm btn-outline-secondary example-btn" data-query="Show me the best hotels in Borivali">Best Hotels in Borivali</button>
+                            <button class="btn btn-sm btn-outline-secondary example-btn" data-query="Find luxury hotels with a pool in Mumbai">Luxury Hotels with Pool</button>
+                            <button class="btn btn-sm btn-outline-secondary example-btn" data-query="I need a luxury vehicle for 4 passengers">Vehicle for 4 Passengers</button>
+                        </div>
+                        <form id="queryForm">
+                            <div class="input-group mb-3">
+                                <input type="text" id="queryInput" class="form-control" placeholder="Type your query here..." required>
+                                <button class="btn btn-primary" type="submit">Get Recommendations</button>
+                            </div>
+                        </form>
+                        <div id="loading" class="text-center my-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Processing your request...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div id="resultsContainer" style="display: none;">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 id="resultsTitle">Results</h3>
+                            <span id="resultCount" class="badge bg-primary">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="queryInfo" class="mb-4">
+                                <p><strong>Your Query:</strong> <span id="queryText"></span></p>
+                                <p><strong>Category:</strong> <span id="queryCategory"></span></p>
+                            </div>
+                            <div id="alternatives" class="mb-4" style="display: none;">
+                                <h4>You might also be interested in:</h4>
+                                <ul class="alternatives-list" id="alternativesList"></ul>
+                            </div>
+                            <div id="recommendations"></div>
+                            <div id="noResults" class="alert alert-warning" style="display: none;">
+                                No recommendations found. Please try a different query.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="errorContainer" class="alert alert-danger mt-4" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const queryForm = document.getElementById('queryForm');
+            const queryInput = document.getElementById('queryInput');
+            const loading = document.getElementById('loading');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const errorContainer = document.getElementById('errorContainer');
+            const recommendations = document.getElementById('recommendations');
+            const queryText = document.getElementById('queryText');
+            const queryCategory = document.getElementById('queryCategory');
+            const resultCount = document.getElementById('resultCount');
+            const noResults = document.getElementById('noResults');
+            const alternatives = document.getElementById('alternatives');
+            const alternativesList = document.getElementById('alternativesList');
+            
+            // Example query buttons
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    queryInput.value = this.getAttribute('data-query');
+                });
+            });
+            
+            // Form submission
+            queryForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const query = queryInput.value.trim();
+                
+                if (!query) return;
+                
+                // Reset UI
+                recommendations.innerHTML = '';
+                errorContainer.style.display = 'none';
+                resultsContainer.style.display = 'none';
+                loading.style.display = 'block';
+                noResults.style.display = 'none';
+                alternatives.style.display = 'none';
+                
+                // Make API request
+                fetch('/api/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    
+                    if (!data.success) {
+                        showError('Failed to get recommendations: ' + data.error);
+                        return;
+                    }
+                    
+                    // Display results
+                    resultsContainer.style.display = 'block';
+                    queryText.textContent = data.query;
+                    queryCategory.textContent = data.category;
+                    resultCount.textContent = data.count;
+                    
+                    if (data.count === 0) {
+                        noResults.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Display alternatives if available
+                    if (data.alternatives && data.alternatives.length > 0) {
+                        alternatives.style.display = 'block';
+                        alternativesList.innerHTML = '';
+                        data.alternatives.forEach(alt => {
+                            const li = document.createElement('li');
+                            li.textContent = alt;
+                            alternativesList.appendChild(li);
+                        });
+                    }
+                    
+                    // Render recommendations
+                    data.recommendations.forEach((item, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'card recommendation-card';
+                        
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+                        
+                        let cardContent = '';
+                        
+                        if (data.category === 'restaurants') {
+                            cardContent = createRestaurantCard(item, index);
+                        } else if (data.category === 'hotels') {
+                            cardContent = createHotelCard(item, index);
+                        } else if (data.category === 'vehicles') {
+                            cardContent = createVehicleCard(item, index);
+                        }
+                        
+                        cardBody.innerHTML = cardContent;
+                        card.appendChild(cardBody);
+                        recommendations.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    showError('An error occurred: ' + error.message);
+                });
+            });
+            
+            function showError(message) {
+                errorContainer.textContent = message;
+                errorContainer.style.display = 'block';
+            }
+            
+            function createRestaurantCard(restaurant, index) {
+                return `
+                    <h4 class="card-title">${index + 1}. ${restaurant}</h4>
+                `;
+            }
+            
+            function createHotelCard(hotel, index) {
+                return `
+                    <h4 class="card-title">${index + 1}. ${hotel}</h4>
+                `;
+            }
+            
+            function createVehicleCard(vehicle, index) {
+                return `
+                    <h4 class="card-title">${index + 1}. ${vehicle}</h4>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
