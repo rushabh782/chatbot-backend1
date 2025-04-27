@@ -142,36 +142,86 @@ class NLPProcessor:
         Returns:
             str: The query type ('restaurant', 'hotel', or 'vehicle')
         """
+        # First check for exact hotel or vehicle names in the query
+        # These names take precedence over other heuristics
+        logger.info(f"Checking for entity names in query: {query}")
+        
+        # Directly check for hotel names if "hotel" is mentioned
+        if 'hotel' in query.lower():
+            from data_loader import DataLoader
+            data_loader = DataLoader()
+            hotels_data = data_loader.load_hotels_data()
+            for _, hotel in hotels_data.iterrows():
+                hotel_name = hotel.get('name', '').lower()
+                if hotel_name in query.lower():
+                    logger.info(f"Found hotel name match: {hotel_name}")
+                    return 'hotel'
+        
+        # Directly check for vehicle model names if a vehicle keyword is present
+        vehicle_keywords = ['car', 'vehicle', 'suv', 'van', 'bike', 'motorbike', 'auto', 'ride']
+        if any(keyword in query.lower() for keyword in vehicle_keywords):
+            from data_loader import DataLoader
+            data_loader = DataLoader()
+            vehicles_data = data_loader.load_vehicles_data()
+            for _, vehicle in vehicles_data.iterrows():
+                vehicle_name = vehicle.get('name', '').lower()
+                if vehicle_name in query.lower():
+                    logger.info(f"Found vehicle name match: {vehicle_name}")
+                    return 'vehicle'
+        
         # Count keyword occurrences for each category
         restaurant_count = sum(1 for token in tokens if token in self.restaurant_keywords)
         hotel_count = sum(1 for token in tokens if token in self.hotel_keywords)
         vehicle_count = sum(1 for token in tokens if token in self.vehicle_keywords)
         
+        logger.info(f"Keyword counts - Restaurant: {restaurant_count}, Hotel: {hotel_count}, Vehicle: {vehicle_count}")
+        
+        # Force hotel detection for queries containing "hotel" or "swimming pool"
+        if 'hotel' in query.lower() or 'swimming pool' in query.lower() or 'pool' in query.lower():
+            logger.info("Force hotel detection based on explicit hotel/pool keywords")
+            return 'hotel'
+            
+        # Force vehicle detection for specific vehicle keywords
+        if 'suv' in query.lower() or 'car' in query.lower() or 'seat' in query.lower() or 'passenger' in query.lower():
+            logger.info("Force vehicle detection based on explicit vehicle keywords")
+            return 'vehicle'
+        
+        # Continue with standard detection if no exact matches were found
         # Determine the most likely query type
         if restaurant_count > hotel_count and restaurant_count > vehicle_count:
+            logger.info("Detected as restaurant based on keyword count")
             return 'restaurant'
         elif hotel_count > restaurant_count and hotel_count > vehicle_count:
+            logger.info("Detected as hotel based on keyword count")
             return 'hotel'
         elif vehicle_count > restaurant_count and vehicle_count > hotel_count:
+            logger.info("Detected as vehicle based on keyword count")
             return 'vehicle'
         else:
-            # Default to restaurant if unclear
+            logger.info("No clear winner based on keyword count, using heuristics")
+            
+            # Default to restaurant if cuisine is mentioned
             for cuisine in self.cuisine_types:
                 if cuisine in query:
+                    logger.info(f"Detected as restaurant based on cuisine: {cuisine}")
                     return 'restaurant'
             
             # Additional heuristics
-            if any(word in query for word in ['room', 'stay', 'night', 'accommodation', 'swimming pool', 'pool', 'spa']):
+            if any(word in query.lower() for word in ['room', 'stay', 'night', 'accommodation', 'swimming pool', 'pool', 'spa']):
+                logger.info("Detected as hotel based on accommodation keywords")
                 return 'hotel'
-            elif any(word in query for word in ['drive', 'ride', 'passenger', 'seat', 'people', 'persons', 'capacity']):
+            elif any(word in query.lower() for word in ['drive', 'ride', 'passenger', 'seat', 'people', 'persons', 'capacity']):
+                logger.info("Detected as vehicle based on transportation keywords")
                 return 'vehicle'
                 
             # Check for numbers that might indicate passengers
             passenger_match = re.search(r'(?:for|with|seats?)\s+(\d+)\s+(?:people|persons|passengers)', query)
             if passenger_match:
+                logger.info("Detected as vehicle based on passenger count")
                 return 'vehicle'
             
             # Final fallback
+            logger.info("Final fallback to restaurant")
             return 'restaurant'
     
     def _extract_filters(self, query, tokens, query_type):
