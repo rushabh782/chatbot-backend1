@@ -41,13 +41,15 @@ class NLPProcessor:
         
         self.hotel_keywords = {
             'hotel', 'hotels', 'motel', 'inn', 'stay', 'accommodation', 'lodge',
-            'lodging', 'resort', 'room', 'bed', 'suite', 'guest house', 'homestay'
+            'lodging', 'resort', 'room', 'bed', 'suite', 'guest house', 'homestay',
+            'luxury', 'budget', 'pool', 'spa', 'breakfast', 'view', 'wifi', 'star'
         }
         
         self.vehicle_keywords = {
             'vehicle', 'vehicles', 'car', 'cars', 'bike', 'bikes', 'motorcycle',
             'scooter', 'rental', 'rentals', 'rent', 'transport', 'transportation',
-            'cab', 'taxi', 'drive', 'driving', 'ride', 'riding', 'bus', 'cycle'
+            'cab', 'taxi', 'drive', 'driving', 'ride', 'riding', 'bus', 'cycle',
+            'suv', 'sedan', 'hatchback', 'auto', 'jeep', 'truck', 'minivan', 'van'
         }
         
         self.price_keywords = {
@@ -159,9 +161,14 @@ class NLPProcessor:
                     return 'restaurant'
             
             # Additional heuristics
-            if any(word in query for word in ['room', 'stay', 'night', 'accommodation']):
+            if any(word in query for word in ['room', 'stay', 'night', 'accommodation', 'swimming pool', 'pool', 'spa']):
                 return 'hotel'
-            elif any(word in query for word in ['drive', 'ride', 'passenger', 'seat']):
+            elif any(word in query for word in ['drive', 'ride', 'passenger', 'seat', 'people', 'persons', 'capacity']):
+                return 'vehicle'
+                
+            # Check for numbers that might indicate passengers
+            passenger_match = re.search(r'(?:for|with|seats?)\s+(\d+)\s+(?:people|persons|passengers)', query)
+            if passenger_match:
                 return 'vehicle'
             
             # Final fallback
