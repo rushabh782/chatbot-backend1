@@ -25,7 +25,7 @@ def index():
         }
     })
 
-@app.route('/api/<path:path>')
+@app.route('/api/<path:path>', methods=['GET', 'POST'])
 def proxy_to_nodejs(path):
     # Redirect to the Node.js API server on port 3000
     return redirect(f"http://localhost:3000/api/{path}", code=307)
