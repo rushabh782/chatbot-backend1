@@ -344,6 +344,20 @@ class RecommendationEngine:
             logger.info(f"Generating hotel recommendations with filters: {filters}")
             self.suggested_alternatives = []  # Reset suggested alternatives
             
+            # Check for direct hotel name search
+            original_query = filters.get('query', '').lower()
+            
+            # First try to find exact hotel name matches in the query
+            for _, hotel in self.hotels_data.iterrows():
+                hotel_name = str(hotel.get('name', '')).lower()
+                if hotel_name and len(hotel_name) > 3 and hotel_name in original_query:
+                    logger.info(f"Found hotel name in query: {hotel_name}")
+                    hotel_row = self.hotels_data[self.hotels_data['name'].str.lower() == hotel_name]
+                    if not hotel_row.empty:
+                        # Return the specific hotel
+                        logger.info(f"Returning specific hotel by name: {hotel_name}")
+                        return [format_hotel(hotel_row.iloc[0])]
+            
             # Get a copy of the data to filter
             filtered_data = self.hotels_data.copy()
             
