@@ -760,9 +760,18 @@ class RecommendationEngine:
             # First try to find exact vehicle name matches in the query
             for _, vehicle in self.vehicles_data.iterrows():
                 vehicle_name = str(vehicle.get('name', '')).lower()
-                if vehicle_name and len(vehicle_name) > 3 and vehicle_name in original_query:
+                
+                # Check for exact name matches or partial matches for specific popular models
+                if (vehicle_name and len(vehicle_name) > 3 and vehicle_name in original_query) or \
+                   ('activa' in original_query and 'activa' in vehicle_name):
                     logger.info(f"Found vehicle name in query: {vehicle_name}")
-                    vehicle_row = self.vehicles_data[self.vehicles_data['name'].str.lower() == vehicle_name]
+                    
+                    # Special case for Activa
+                    if 'activa' in vehicle_name:
+                        vehicle_row = self.vehicles_data[self.vehicles_data['name'].str.lower().str.contains('activa')]
+                    else:
+                        vehicle_row = self.vehicles_data[self.vehicles_data['name'].str.lower() == vehicle_name]
+                        
                     if not vehicle_row.empty:
                         # Return the specific vehicle
                         logger.info(f"Returning specific vehicle by name: {vehicle_name}")

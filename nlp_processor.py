@@ -162,7 +162,9 @@ class NLPProcessor:
         vehicles_data = data_loader.load_vehicles_data()
         for _, vehicle in vehicles_data.iterrows():
             vehicle_name = str(vehicle.get('name', '')).lower()
-            if vehicle_name and len(vehicle_name) > 3 and vehicle_name in query.lower():
+            # Check for exact name matches or partial matches for specific popular models
+            if (vehicle_name and len(vehicle_name) > 3 and vehicle_name in query.lower()) or \
+               ('activa' in query.lower() and 'activa' in vehicle_name):
                 logger.info(f"Found specific vehicle name in query: {vehicle_name}")
                 return 'vehicle'
                 
