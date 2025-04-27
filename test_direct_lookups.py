@@ -26,7 +26,7 @@ recommendation_engine = RecommendationEngine(restaurants_data, hotels_data, vehi
 # Test hotel direct lookup
 def test_hotel_name_lookup():
     print("\n=== Testing hotel name lookup ===")
-    query = "Tell me about The Lalit Mumbai"
+    query = "Tell me about The Oberoi Mumbai"
     print(f"Query: {query}")
     
     query_type, filters = nlp_processor.process_query(query)
