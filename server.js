@@ -45,9 +45,18 @@ app.post('/api/recommendations', (req, res) => {
       }
 
       try {
-        // Parse the JSON result from the Python script
-        const recommendations = JSON.parse(result);
-        res.json(recommendations);
+        // Extract JSON content from the output (ignore NLTK debug messages)
+        const jsonStartIndex = result.indexOf('{');
+        const jsonEndIndex = result.lastIndexOf('}') + 1;
+        
+        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+          const jsonContent = result.substring(jsonStartIndex, jsonEndIndex);
+          const recommendations = JSON.parse(jsonContent);
+          res.json(recommendations);
+        } else {
+          console.error('Could not find valid JSON in the Python output');
+          res.status(500).json({ error: 'Invalid format from Python script', raw: result });
+        }
       } catch (e) {
         console.error('Failed to parse Python script output:', e);
         res.status(500).json({ error: 'Failed to parse recommendations', details: e.message, raw: result });

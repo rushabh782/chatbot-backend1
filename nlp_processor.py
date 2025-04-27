@@ -8,14 +8,23 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 # Download required NLTK data
+print("Checking NLTK data...")
 try:
     nltk.data.find('tokenizers/punkt')
-    nltk.data.find('corpora/stopwords')
+    print("Found punkt package")
 except LookupError:
-    print("Downloading required NLTK data...")
+    print("Downloading punkt package...")
     nltk.download('punkt')
+    print("Punkt download complete")
+
+try:
+    nltk.data.find('corpora/stopwords')
+    print("Found stopwords package")
+except LookupError:
+    print("Downloading stopwords package...")
     nltk.download('stopwords')
-    print("NLTK data download complete.")
+    print("Stopwords download complete")
+print("NLTK data setup complete.")
 
 logger = logging.getLogger(__name__)
 

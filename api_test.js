@@ -34,12 +34,21 @@ pythonProcess.on('close', (code) => {
   }
 
   try {
-    // Parse and display the JSON result
-    const response = JSON.parse(result);
-    console.log(JSON.stringify(response, null, 2));
+    // Extract JSON content from the output (ignore NLTK debug messages)
+    const jsonStartIndex = result.indexOf('{');
+    const jsonEndIndex = result.lastIndexOf('}') + 1;
     
-    console.log(`\nQuery type: ${response.query_type}`);
-    console.log(`Results found: ${response.count}`);
+    if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+      const jsonContent = result.substring(jsonStartIndex, jsonEndIndex);
+      const response = JSON.parse(jsonContent);
+      console.log(JSON.stringify(response, null, 2));
+      
+      console.log(`\nQuery type: ${response.query_type}`);
+      console.log(`Results found: ${response.count}`);
+    } else {
+      console.error('Could not find valid JSON in the output');
+      console.log('Raw output:', result);
+    }
   } catch (e) {
     console.error('Failed to parse Python output:', e);
     console.log('Raw output:', result);
