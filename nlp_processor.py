@@ -115,7 +115,8 @@ class NLPProcessor:
         try:
             # Preprocess query
             query = query.lower()
-            tokens = word_tokenize(query)
+            # Use simple split instead of word_tokenize
+            tokens = query.split()
             
             # Determine query type (restaurant, hotel, or vehicle)
             query_type = self._determine_query_type(query, tokens)
@@ -142,11 +143,30 @@ class NLPProcessor:
         Returns:
             str: The query type ('restaurant', 'hotel', or 'vehicle')
         """
-        # First check for exact entity mentions in the query
-        # These keywords take precedence over other heuristics
-        logger.info(f"Checking for entity keywords in query: {query}")
+        # First check for direct entity name references
+        logger.info(f"Checking for entity names and keywords in query: {query}")
         
-        # Count keyword matches for each entity type
+        # Check for specific hotel names first (they take the highest priority)
+        from data_loader import DataLoader
+        data_loader = DataLoader()
+        hotels_data = data_loader.load_hotels_data()
+        
+        # Check for specific hotel names in the query
+        for _, hotel in hotels_data.iterrows():
+            hotel_name = str(hotel.get('name', '')).lower()
+            if hotel_name and len(hotel_name) > 3 and hotel_name in query.lower():
+                logger.info(f"Found specific hotel name in query: {hotel_name}")
+                return 'hotel'
+        
+        # Check for specific vehicle names if no hotel name matches
+        vehicles_data = data_loader.load_vehicles_data()
+        for _, vehicle in vehicles_data.iterrows():
+            vehicle_name = str(vehicle.get('name', '')).lower()
+            if vehicle_name and len(vehicle_name) > 3 and vehicle_name in query.lower():
+                logger.info(f"Found specific vehicle name in query: {vehicle_name}")
+                return 'vehicle'
+                
+        # If no specific name matches, count keyword matches for each entity type
         restaurant_score = sum(1 for word in self.restaurant_keywords if word in query)
         hotel_score = sum(1 for word in self.hotel_keywords if word in query)
         vehicle_score = sum(1 for word in self.vehicle_keywords if word in query)
@@ -160,16 +180,6 @@ class NLPProcessor:
             return 'hotel'
         elif vehicle_score > restaurant_score and vehicle_score > hotel_score:
             return 'vehicle'
-        
-        # If no clear winner from keyword counts, use the old method
-            from data_loader import DataLoader
-            data_loader = DataLoader()
-            hotels_data = data_loader.load_hotels_data()
-            for _, hotel in hotels_data.iterrows():
-                hotel_name = hotel.get('name', '').lower()
-                if hotel_name in query.lower():
-                    logger.info(f"Found hotel name match: {hotel_name}")
-                    return 'hotel'
         
         # Directly check for vehicle model names if a vehicle keyword is present
         vehicle_keywords = ['car', 'vehicle', 'suv', 'van', 'bike', 'motorbike', 'auto', 'ride']
