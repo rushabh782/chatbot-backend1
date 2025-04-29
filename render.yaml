@@ -1,0 +1,31 @@
+services:
+  # Node.js Frontend API (Public-facing)
+  - type: web
+    name: diningadvisor-nodejs
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: FLASK_API_URL
+        fromService:
+          name: diningadvisor-flask
+          type: web
+          property: url
+
+  # Flask Backend (Private microservice)
+  - type: web
+    name: diningadvisor-flask
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_flask.py
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "true"

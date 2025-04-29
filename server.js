@@ -1,79 +1,72 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
+const path = require('path');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+const flaskApiUrl = process.env.FLASK_API_URL || 'http://localhost:5000';
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Route to get recommendations
+// API proxy to call Flask (if needed)
 app.post('/api/recommendations', (req, res) => {
   const { query } = req.body;
-  
+
   if (!query) {
     return res.status(400).json({ error: 'Query is required' });
   }
 
-  try {
-    // Execute the Python script with the query
-    const pythonProcess = spawn('python', ['api_handler.py', query]);
-    
-    let result = '';
-    let error = '';
+  const pythonProcess = spawn('python', ['api_handler.py', query], {
+    cwd: path.resolve(__dirname)
+  });
 
-    // Collect data from stdout
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
-    });
+  let result = '';
+  let error = '';
 
-    // Collect any errors from stderr
-    pythonProcess.stderr.on('data', (data) => {
-      error += data.toString();
-    });
+  pythonProcess.stdout.on('data', (data) => {
+    result += data.toString();
+  });
 
-    // Handle process completion
-    pythonProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error(`Python process exited with code ${code}`);
-        console.error(`Error: ${error}`);
-        return res.status(500).json({ error: 'Failed to get recommendations', details: error });
+  pythonProcess.stderr.on('data', (data) => {
+    error += data.toString();
+  });
+
+  pythonProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Python exited with code ${code}`);
+      console.error(error);
+      return res.status(500).json({ error: 'Python error', details: error });
+    }
+
+    try {
+      const jsonStart = result.indexOf('{');
+      const jsonEnd = result.lastIndexOf('}') + 1;
+      if (jsonStart >= 0 && jsonEnd > 0) {
+        const jsonContent = result.substring(jsonStart, jsonEnd);
+        const recommendations = JSON.parse(jsonContent);
+        return res.json(recommendations);
+      } else {
+        throw new Error("No valid JSON found in output");
       }
-
-      try {
-        // Extract JSON content from the output (ignore NLTK debug messages)
-        const jsonStartIndex = result.indexOf('{');
-        const jsonEndIndex = result.lastIndexOf('}') + 1;
-        
-        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
-          const jsonContent = result.substring(jsonStartIndex, jsonEndIndex);
-          const recommendations = JSON.parse(jsonContent);
-          res.json(recommendations);
-        } else {
-          console.error('Could not find valid JSON in the Python output');
-          res.status(500).json({ error: 'Invalid format from Python script', raw: result });
-        }
-      } catch (e) {
-        console.error('Failed to parse Python script output:', e);
-        res.status(500).json({ error: 'Failed to parse recommendations', details: e.message, raw: result });
-      }
-    });
-  } catch (e) {
-    console.error('Failed to execute Python script:', e);
-    res.status(500).json({ error: 'Internal server error', details: e.message });
-  }
+    } catch (e) {
+      return res.status(500).json({
+        error: 'Failed to parse Python output',
+        raw: result,
+        details: e.message
+      });
+    }
+  });
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Service is running' });
+  res.json({ status: 'ok', message: 'Node.js server is running' });
 });
 
-// Start the server
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Recommendation API server running on port ${port}`);
+  console.log(`Node.js server running on port ${port}`);
 });
